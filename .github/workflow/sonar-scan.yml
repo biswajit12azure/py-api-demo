@@ -1,0 +1,37 @@
+name: CI - SonarQube Scan
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  sonar-scan:
+    # ensure this runs on your self-hosted runner that can reach localhost:9000
+    runs-on: [self-hosted, windows]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up environment (optional)
+        shell: powershell
+        run: |
+          echo "Workspace: $env:GITHUB_WORKSPACE"
+          # Ensure Docker is available on runner and running (Docker Desktop)
+          docker --version
+
+      - name: Run SonarScanner (Docker)
+        # Use Docker to run SonarScanner CLI so you don't have to install it on runner
+        run: |
+          REM For PowerShell on Windows self-hosted runner, use ${PWD} for mount
+          docker run --rm ^
+            -e "SONAR_HOST_URL=http://host.docker.internal:9000" ^
+            -e "SONAR_LOGIN=${{ secrets.SONAR_TOKEN }}" ^
+            -v "${{ github.workspace }}:/usr/src" ^
+            sonarsource/sonar-scanner-cli ^
+            -Dsonar.projectKey=py-api-demo ^
+            -Dsonar.sources=. ^
+            -Dsonar.host.url=http://host.docker.internal:9000
+        shell: powershell
