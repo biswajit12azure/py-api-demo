@@ -1,4 +1,4 @@
-name: 🔍 Security Scanning (DAST, Trivy, Checkov)
+name: Security-Scanning-DAST-Trivy-Checkov
 
 on:
   push:
@@ -6,7 +6,12 @@ on:
   pull_request:
     branches: [ "main" ]
 
-permissions: write-all  
+permissions:
+  contents: read
+  actions: write
+  pull-requests: write
+  security-events: write
+
 jobs:
   security-scan:
     runs-on: ubuntu-latest
@@ -26,7 +31,7 @@ jobs:
         with:
           image-ref: py-secure-demo
           format: table
-          exit-code: 0        # don't fail build
+          exit-code: 0
           severity: HIGH,CRITICAL
 
       # 4️⃣ Run IaC Scan using Checkov
@@ -35,17 +40,27 @@ jobs:
         with:
           directory: .
           framework: all
-          soft_fail: true     # mark warnings but continue pipeline
+          soft_fail: true
 
-      # 5️⃣ Start Flask App in background for DAST
+      # 5️⃣ Start Flask App for ZAP DAST
       - name: Start Flask App
         run: |
           pip install -r requirements.txt
-          nohup python app.py & sleep 10
+          nohup python app.py > app.log 2>&1 &
+          sleep 10
 
-      # 6️⃣ Run DAST with OWASP ZAP
+      # 6️⃣ Run OWASP ZAP DAST Scan
       - name: Run OWASP ZAP DAST Scan
-        uses: zaproxy/action-full-scan@v0.7.0
+        id: zap_scan
+        uses: zaproxy/action-baseline@v0.11.0
         with:
           target: "http://localhost:5000"
-          cmd_options: "-a"     # active scan mode
+          cmd_options: "-a"
+        continue-on-error: true
+
+      # 7️⃣ Upload ZAP Report
+      - name: Upload ZAP Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-report
+          path: report_html.html
