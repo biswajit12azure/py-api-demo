@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [ "main" ]
 
+permissions:
+  actions: read
+  contents: read
+  security-events: write   # ✅ Required for CodeQL to upload results
+
 jobs:
   build:
     name: Build & Scan
