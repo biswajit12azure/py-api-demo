@@ -1,4 +1,4 @@
-name: Security-Scanning-DAST-Trivy-Checkov
+name: 🔍 Security Scanning (DAST, Trivy, Checkov)
 
 on:
   push:
