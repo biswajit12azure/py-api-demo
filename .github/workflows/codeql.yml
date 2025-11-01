@@ -19,7 +19,11 @@ on:
   schedule:
     - cron: '31 5 * * 4'
 
-permissions: write-all
+permissions:
+  contents: read
+  actions: write
+  pull-requests: write
+  security-events: write
 
 jobs:
   analyze:
