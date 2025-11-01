@@ -1,16 +1,19 @@
 name: 🔍 Security Scanning (DAST, Trivy, Checkov)
 
 on:
-  workflow_dispatch:
   push:
     branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+  
 jobs:
   security-scan:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      security-events: write
 
     steps:
       # 1️⃣ Checkout code
