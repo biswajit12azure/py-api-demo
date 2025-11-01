@@ -16,5 +16,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Step 5: Expose port
 EXPOSE 5000
 
+HEALTHCHECK CMD curl --fail http://localhost:5000/ || exit 1
+
 # Step 6: Run the app
 CMD ["python", "app.py"]
