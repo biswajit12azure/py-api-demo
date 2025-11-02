@@ -1,16 +1,4 @@
-name: Build
 
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-
-permissions:
-  contents: read
-  actions: write
-  pull-requests: write
-  security-events: write
 
 jobs:
   sonar-scan:
