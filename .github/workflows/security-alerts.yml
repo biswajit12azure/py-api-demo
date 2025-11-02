@@ -1,0 +1,32 @@
+# .github/workflows/security-alerts.yml
+name: "Security Alerts to Slack"
+
+on:
+  workflow_run:
+    workflows: ["CodeQL Analysis"]
+    types:
+      - completed
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Slack Alert
+        if: ${{ github.event.workflow_run.conclusion != 'success' }}
+        uses: slackapi/slack-github-action@v1.27.0
+        with:
+          payload: |
+            {
+              "text": ":rotating_light: *Security Alert!* CodeQL scan failed on `${{ github.repository }}`.",
+              "attachments": [
+                {
+                  "color": "danger",
+                  "fields": [
+                    { "title": "Branch", "value": "${{ github.ref }}", "short": true },
+                    { "title": "Run URL", "value": "${{ github.event.workflow_run.html_url }}", "short": true }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
