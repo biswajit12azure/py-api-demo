@@ -53,7 +53,7 @@ jobs:
         with:
           category: "/language:python"
 
-      # 6️⃣ (Optional) Run SonarCloud Scan
+      # 6️⃣ Run SonarCloud Scan
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2
         env:
