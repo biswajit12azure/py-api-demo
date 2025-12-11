@@ -82,7 +82,12 @@ jobs:
           sudo mv ./kind /usr/local/bin/kind
 
       - name: Create kind cluster from config
-        run: kind create cluster --name github-actions --config kind-config.yaml
+        run: |
+           # Delete existing cluster if it exists
+           kind delete cluster --name github-actions || true
+
+           # Create a new cluster using the config file
+           kind create cluster --name github-actions --config kind-config.yaml
 
       - name: Set up kubectl
         uses: azure/setup-kubectl@v3
