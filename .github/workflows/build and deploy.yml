@@ -59,3 +59,27 @@ jobs:
           kubectl get all -n my-namespace
           kubectl rollout status deployment/my-python-app -n my-namespace
 
+      # --- Verify deployment ---
+      - name: Verify Kubernetes Deployment
+        run: |
+         kubectl get pods -n my-namespace
+
+      # --- Port Forward ---
+      - name: Port Forward service
+        run: |
+         port-forward svc/my-python-app -n my-namespace 8080:80 &
+         sleep 5
+
+     # --- Test App ---
+      - name: Test service endpoint
+        run: curl -I http://localhost:8080
+
+     # --- OWASP ZAP Scan ---
+      - name: Run OWASP ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.12.0
+        with:
+         target: "http://localhost:8080"
+        continue-on-error: true
+
+          
+
