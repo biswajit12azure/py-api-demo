@@ -15,6 +15,10 @@ jobs:
   build:
     name: Build & Scan
     runs-on: ubuntu-latest
+    env:
+      DOCKER_REGISTRY: registry.localhost
+      DOCKER_USERNAME: ${{ secrets.NEXUS_USERNAME }}
+      DOCKER_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
 
     steps:
       # 1️ Checkout code
