@@ -105,7 +105,8 @@ jobs:
 
       - name: Deploy Helm chart
         run: |
-          helm uninstall my-python-app -n my-namespace || true
+          kubectl delete deployment my-python-app -n my-namespace || true
+          kubectl delete service my-python-app -n my-namespace || true
           helm upgrade --install my-python-app ./helm/my-python-app \
             --namespace my-namespace \
             --create-namespace \
