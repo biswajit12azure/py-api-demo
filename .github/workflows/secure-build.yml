@@ -97,4 +97,17 @@ jobs:
         with:
           name: sbom
           path: sbom.spdx.json
+        
+     # 10 Docker Build using Buildx
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker Image
+        id: build_image
+        run: |
+          IMAGE_NAME="${{ github.repository_owner }}/secure-app"
+          IMAGE_TAG="${{ github.sha }}"
+          docker buildx build --load -t "${IMAGE_NAME}:${IMAGE_TAG}" .
+          echo "image=${IMAGE_NAME}:${IMAGE_TAG}" >> $GITHUB_OUTPUT
+        
 
