@@ -1,4 +1,4 @@
-name: 🛡️ Python Build and Deploy to Minikube
+name: 🛡️ Python Build and Deploy to Kubernetes
 
 on:
   push:
