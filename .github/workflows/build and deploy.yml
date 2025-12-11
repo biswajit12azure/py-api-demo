@@ -77,9 +77,7 @@ jobs:
 
     # 2️⃣ Delete any old cluster and create a new one
     - name: Create kind cluster from config
-      run: |
-        kind delete cluster --name github-actions || true
-        kind create cluster --name github-actions --config kind-config.yaml
+      run: kind create cluster --name github-actions --config kind-config.yaml
 
     # 3️⃣ Set KUBECONFIG
     - name: Configure kubeconfig
