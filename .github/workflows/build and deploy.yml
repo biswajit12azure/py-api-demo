@@ -68,66 +68,33 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    # 1️⃣ Install kind
-    - name: Install kind
-      run: |
-        curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.22.0/kind-linux-amd64
-        chmod +x ./kind
-        sudo mv ./kind /usr/local/bin/kind
-
-    - name: Create kind cluster from config
-      run:  kind create cluster --name github-actions --config kind-config.yaml
-
-    # 3️⃣ Set KUBECONFIG
-    - name: Configure kubeconfig
-      run: |
-          mkdir -p $HOME/.kube
-          kind get kubeconfig --name github-actions > $HOME/.kube/config
-          chmod 600 $HOME/.kube/config
-
-    # 4️⃣ Install kubectl
+    # 1️⃣ Set up kubectl
     - name: Set up kubectl
       uses: azure/setup-kubectl@v3
       with:
         version: 'v1.29.0'
 
-    # 5️⃣ Install Helm
-    - name: Set up Helm
-      uses: azure/setup-helm@v3
-      with:
-        version: 'v3.12.0'
-
-    # 6️⃣ Create dynamic namespace
-    - name: Generate unique namespace
+    # 2️⃣ Configure kubeconfig (assumes you have KUBECONFIG as secret)
+    - name: Configure kubeconfig
       run: |
-        NAMESPACE="my-namespace-$(date +%s)"
-        echo "NAMESPACE=$NAMESPACE" >> $GITHUB_ENV
+        mkdir -p $HOME/.kube
+        echo "${{ secrets.KUBECONFIG }}" > $HOME/.kube/config
+        chmod 600 $HOME/.kube/config
 
-    # 8️⃣ Deploy Helm chart
-    - name: Deploy Helm chart
+    # 3️⃣ Create namespace (if not exists)
+    - name: Create namespace
       run: |
-        helm upgrade --install my-python-app-v2 ./helm/my-python-app-v2 \
-          --namespace $NAMESPACE \
-          --create-namespace \
-          --set image.repository=my-python-app \
-          --set image.tag=latest
+        kubectl get ns my-namespace || kubectl create ns my-namespace
 
-    # 9️⃣ Check pods and deployment status
-    - name: Check Pods and Deployment Status
+    # 4️⃣ Apply Kubernetes manifests
+    - name: Apply manifests
       run: |
-        kubectl get nodes -o wide
-        kubectl get all -n $NAMESPACE
-        kubectl rollout status deployment/my-python-app -n $NAMESPACE
+        kubectl apply -f k8s/deployment.yaml
+        kubectl apply -f k8s/service.yaml
 
-    # 🔟 Port-forward for DAST scan
-    - name: Port-forward service
+    # 5️⃣ Check status
+    - name: Check pods
       run: |
-        nohup kubectl port-forward svc/my-python-app -n $NAMESPACE 8080:80 &
-        sleep 5
+        kubectl get all -n my-namespace
+        kubectl rollout status deployment/my-python-app -n my-namespace
 
-    # 1️⃣1️⃣ Run OWASP ZAP Baseline Scan
-    - name: Run OWASP ZAP Baseline Scan
-      uses: zaproxy/action-baseline@v0.12.0
-      with:
-        target: "http://localhost:8080"
-      continue-on-error: true
