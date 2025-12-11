@@ -1,4 +1,4 @@
-name: Secure Python Build and Deploy Pipeline
+name: 🛡️ Python Build and Deploy to Minikube
 
 on:
   push:
@@ -7,94 +7,69 @@ on:
     branches: [ "main" ]
 
 permissions:
-  actions: read
   contents: read
-  security-events: write
 
 jobs:
-  build-and-scan:
-    name: Build, Scan & Push
+  build-and-deploy:
+    name: Build Docker Image and Deploy to Minikube
     runs-on: ubuntu-latest
-    services:
-      nexus:
-        image: sonatype/nexus3
-        ports:
-          - 8081:8081
-      registry:
-        image: registry:2
-        ports:
-          - 5000:5000
-
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      # (Keep your scanning steps here: Gitleaks, pip-audit, CodeQL, Semgrep, Syft, Trivy)
+      # --- Install Docker (needed for Minikube driver) ---
+      - name: Set up Docker
+        uses: docker/setup-docker@v3
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build Docker Image
-        id: build_image
+      # --- Build Docker image ---
+      - name: Build Docker image
         run: |
-          IMAGE_NAME="localhost:5000/my-python-app"
-          IMAGE_TAG="latest"
-          docker buildx build --load -t "${IMAGE_NAME}:${IMAGE_TAG}" .
-          echo "image=${IMAGE_NAME}:${IMAGE_TAG}" >> $GITHUB_OUTPUT
+          docker build -t my-python-app:latest .
 
-      - name: Docker login to ephemeral registry
-        run: echo "dummy" | docker login localhost:5000 -u dummy --password-stdin
+      # --- Install Minikube ---
+      - name: Install Minikube
+        run: |
+          curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+          chmod +x minikube
+          sudo mv minikube /usr/local/bin/
 
-      - name: Push Docker image
-        run: docker push localhost:5000/my-python-app:latest
+      # --- Start Minikube with Docker driver ---
+      - name: Start Minikube
+        run: |
+          minikube start --driver=docker
+          minikube status
 
-      - name: Verify images in registry
-        run: curl http://localhost:5000/v2/_catalog
+      # --- Set kubectl context for Minikube ---
+      - name: Configure kubectl
+        run: |
+          kubectl config use-context minikube
+          kubectl get nodes
 
-      - name: Save docker image to file
-        run: docker save localhost:5000/my-python-app:latest -o my-python-app.tar
-        shell: bash
+      # --- Create namespace if not exists ---
+      - name: Create namespace
+        run: kubectl get ns my-namespace || kubectl create ns my-namespace
 
-      - name: Upload the image artifact
-        uses: actions/upload-artifact@v4
+      # --- Deploy app manifests ---
+      - name: Deploy Kubernetes manifests
+        run: |
+          kubectl apply -f k8s/deployment.yaml -n my-namespace
+          kubectl apply -f k8s/service.yaml -n my-namespace
+
+      # --- Check deployment status ---
+      - name: Verify deployment
+        run: |
+          kubectl get all -n my-namespace
+          kubectl rollout status deployment/my-python-app -n my-namespace
+
+      # --- Port-forward to test (optional) ---
+      - name: Port-forward service
+        run: |
+          nohup kubectl port-forward svc/my-python-app -n my-namespace 8080:80 &
+          sleep 5
+
+      # --- Optional: Run OWASP ZAP Baseline Scan ---
+      - name: Run OWASP ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.12.0
         with:
-          name: my-python-app
-          path: my-python-app.tar
-
-
-  deploy:
-    name: Deploy to Kubernetes
-    runs-on: ubuntu-latest
-    needs: build-and-scan
-    steps:
-    - uses: actions/checkout@v4
-
-    # 1️⃣ Set up kubectl
-    - name: Set up kubectl
-      uses: azure/setup-kubectl@v3
-      with:
-        version: 'v1.29.0'
-
-    # 2️⃣ Configure kubeconfig (assumes you have KUBECONFIG as secret)
-    - name: Configure kubeconfig
-      run: |
-        mkdir -p $HOME/.kube
-        echo "${{ secrets.KUBECONFIG }}" > $HOME/.kube/config
-        chmod 600 $HOME/.kube/config
-
-    # 3️⃣ Create namespace (if not exists)
-    - name: Create namespace
-      run: |
-        kubectl get ns my-namespace || kubectl create ns my-namespace
-
-    # 4️⃣ Apply Kubernetes manifests
-    - name: Apply manifests
-      run: |
-        kubectl apply -f k8s/deployment.yaml
-        kubectl apply -f k8s/service.yaml
-
-    # 5️⃣ Check status
-    - name: Check pods
-      run: |
-        kubectl get all -n my-namespace
-        kubectl rollout status deployment/my-python-app -n my-namespace
-
+          target: "http://localhost:8080"
+        continue-on-error: true
