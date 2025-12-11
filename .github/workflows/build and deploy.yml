@@ -86,7 +86,7 @@ jobs:
         uses: zaproxy/action-baseline@v0.12.0
         with:
          target: "http://localhost:8080"
-         output_folder: zap-output
+         output_folder: "./zap-output"
         continue-on-error: true
 
      # --- Upload ZAP Reports ---
