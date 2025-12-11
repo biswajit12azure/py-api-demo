@@ -62,7 +62,7 @@ jobs:
 
 
   deploy:
-    name: Deploy to Kubernetes (Ephemeral)
+    name: Deploy to Kubernetes
     runs-on: ubuntu-latest
     needs: build-and-scan
 
@@ -105,7 +105,8 @@ jobs:
 
       - name: Deploy Helm chart
         run: |
-          helm upgrade my-python-app ./helm/my-python-app \
+          helm uninstall my-python-app -n my-namespace || true
+          helm upgrade --install my-python-app ./helm/my-python-app \
             --namespace my-namespace \
             --create-namespace \
             --set image.repository=my-python-app \
