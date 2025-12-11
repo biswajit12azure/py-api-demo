@@ -29,11 +29,6 @@ jobs:
         image: registry:2
         ports:
           - 5000:5000
-        options: >-
-          --health-cmd "curl -f http://localhost:5000/v2/ || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 10
 
     steps:
       # 1️ Checkout code
@@ -149,6 +144,9 @@ jobs:
       - name: Build Docker image
         run: |
           docker build -t localhost:5000/my-python-app:latest .
+          
+      - name: Wait for registry
+        run: sleep 30
 
       - name: Docker login to ephemeral registry
         run: |
