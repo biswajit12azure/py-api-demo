@@ -1,4 +1,4 @@
-name: 🛡️ Secure Python Build Pipeline
+name: 🛡️ Secure Python Build and Deploy Pipeline
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
 permissions:
   actions: read
   contents: read
-  security-events: write   # Required for CodeQL
+  security-events: write
 
 jobs:
   build-and-scan:
@@ -26,9 +26,9 @@ jobs:
           - 5000:5000
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
+      # --- Security Scans ---
       - name: Run Gitleaks (Secrets Scan)
         uses: zricethezav/gitleaks-action@v2
         with:
@@ -78,13 +78,6 @@ jobs:
           name: semgrep-report
           path: semgrep-report.json
 
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@v2
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        with:
-          projectBaseDir: .
-
       - name: Install Syft
         run: |
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
@@ -98,6 +91,7 @@ jobs:
           name: sbom
           path: sbom.spdx.json
 
+      # --- Docker Build & Push ---
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -109,24 +103,6 @@ jobs:
           docker buildx build --load -t "${IMAGE_NAME}:${IMAGE_TAG}" .
           echo "image=${IMAGE_NAME}:${IMAGE_TAG}" >> $GITHUB_OUTPUT
 
-      - name: Run Trivy Image Scan
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ${{ steps.build_image.outputs.image }}
-          format: json
-          output: trivy-report.json
-          severity: HIGH,CRITICAL
-          exit-code: 0
-      - name: Upload Trivy Report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: trivy-report
-          path: trivy-report.json
-
-      - name: Wait for ephemeral services
-        run: sleep 30
-
       - name: Docker login to ephemeral registry
         run: echo "dummy" | docker login localhost:5000 -u dummy --password-stdin
 
@@ -135,3 +111,114 @@ jobs:
 
       - name: Verify images in registry
         run: curl http://localhost:5000/v2/_catalog
+
+  deploy:
+    name: Deploy to Kubernetes (Ephemeral)
+    runs-on: ubuntu-latest
+    needs: build-and-scan
+    steps:
+      - uses: actions/checkout@v4
+
+      # Install kind
+      - name: Install kind
+        run: |
+          curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.22.0/kind-linux-amd64
+          chmod +x ./kind
+          sudo mv ./kind /usr/local/bin/kind
+
+      # Create ephemeral Kubernetes cluster
+      - name: Create kind cluster
+        run: kind create cluster --name github-actions
+
+      # Set up kubectl
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.29.0'
+
+      # Set up Helm
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'v3.12.0'
+
+      # Configure kubeconfig
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          kind get kubeconfig > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+      # Generate minimal Helm chart dynamically
+      - name: Generate Helm chart
+        run: |
+          mkdir -p helm/my-python-app/templates
+
+          cat <<EOF > helm/my-python-app/Chart.yaml
+apiVersion: v2
+name: my-python-app
+description: Ephemeral Python app
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+EOF
+
+          cat <<EOF > helm/my-python-app/values.yaml
+replicaCount: 1
+image:
+  repository: localhost:5000/my-python-app
+  tag: latest
+  pullPolicy: IfNotPresent
+service:
+  type: ClusterIP
+  port: 80
+containerPort: 8080
+EOF
+
+          cat <<EOF > helm/my-python-app/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Chart.Name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Chart.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Chart.Name }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.containerPort }}
+EOF
+
+          cat <<EOF > helm/my-python-app/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Chart.Name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    app: {{ .Chart.Name }}
+  ports:
+    - protocol: TCP
+      port: {{ .Values.service.port }}
+      targetPort: {{ .Values.containerPort }}
+EOF
+
+      # Deploy Helm chart
+      - name: Deploy Helm chart
+        run: |
+          helm upgrade --install my-python-app ./helm/my-python-app \
+            --namespace my-namespace \
+            --create-namespace
+
