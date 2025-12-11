@@ -107,10 +107,11 @@ jobs:
         run: |
           helm list --all-namespaces
           helm upgrade --install my-python-app ./helm/my-python-app \
-            --namespace my-namespace \
-            --create-namespace \
-            --set image.repository=my-python-app \
-            --set image.tag=latest
+                   --namespace my-namespace \
+                   --create-namespace \
+                   --replace \
+                   --set image.repository=my-python-app \
+                   --set image.tag=latest
 
       - name: Check Pods and Deployment Status
         run: |
