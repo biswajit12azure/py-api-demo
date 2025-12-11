@@ -105,7 +105,7 @@ jobs:
 
       - name: Deploy Helm chart
         run: |
-          helm upgrade --install my-python-app ./helm/my-python-app \
+          helm upgrade --upgrade my-python-app ./helm/my-python-app \
             --namespace my-namespace \
             --create-namespace \
             --set image.repository=my-python-app \
