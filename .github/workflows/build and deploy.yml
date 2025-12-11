@@ -105,7 +105,7 @@ jobs:
 
       - name: Deploy Helm chart
         run: |
-          kubectl delete svc my-python-app -n my-namespace
+          kubectl get svc --all-namespaces | grep my-python-app
           helm upgrade --install my-python-app ./helm/my-python-app \
             --namespace my-namespace \
             --create-namespace \
