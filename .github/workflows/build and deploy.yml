@@ -17,10 +17,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # --- Install Docker (needed for Minikube driver) ---
-      - name: Set up Docker
-        uses: docker/setup-docker@v3
-
       # --- Build Docker image ---
       - name: Build Docker image
         run: |
