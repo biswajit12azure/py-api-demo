@@ -1,4 +1,4 @@
-name: 🛡️ Secure Python Build and Deploy Pipeline
+name: Secure Python Build and Deploy Pipeline
 
 on:
   push:
