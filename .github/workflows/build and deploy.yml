@@ -67,7 +67,7 @@ jobs:
       # --- Port Forward ---
       - name: Port Forward service
         run: |
-         port-forward svc/my-python-app -n my-namespace 8080:80 &
+         kubectl port-forward svc/my-python-app -n my-namespace 8080:80 &
          sleep 5
 
      # --- Test App ---
