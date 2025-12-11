@@ -15,10 +15,25 @@ jobs:
   build:
     name: Build & Scan
     runs-on: ubuntu-latest
-    env:
-      DOCKER_REGISTRY: registry.localhost
-      DOCKER_USERNAME: ${{ secrets.NEXUS_USERNAME }}
-      DOCKER_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
+    services:
+      nexus:
+        image: sonatype/nexus3
+        ports:
+          - 8081:8081
+        options: >-
+          --health-cmd "curl -f http://localhost:8081 || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+      registry:
+        image: registry:2
+        ports:
+          - 5000:5000
+        options: >-
+          --health-cmd "curl -f http://localhost:5000/v2/ || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
 
     steps:
       # 1️ Checkout code
@@ -133,17 +148,15 @@ jobs:
     # 12 Build Docker image
       - name: Build Docker image
         run: |
-          docker build -t $DOCKER_REGISTRY/my-python-app:latest .
+          docker build -t localhost:5000/my-python-app:latest .
 
-    # 13 Login to Nexus Docker registry
-      - name: Docker login
+      - name: Docker login to ephemeral registry
         run: |
-          echo $DOCKER_PASSWORD | docker login $DOCKER_REGISTRY -u $DOCKER_USERNAME --password-stdin
+          echo "dummy" | docker login localhost:5000 -u dummy --password-stdin
 
-    # 14 Push Docker image
       - name: Push Docker image
         run: |
-          docker push $DOCKER_REGISTRY/my-python-app:latest
+          docker push localhost:5000/my-python-app:latest
 
         
       
