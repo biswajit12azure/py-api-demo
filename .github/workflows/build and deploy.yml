@@ -1,3 +1,14 @@
+name: 🛡️ Python Build and Deploy to Minikube
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+  
 jobs:
   build-and-deploy:
     name: Build Docker Image and Deploy to Minikube
