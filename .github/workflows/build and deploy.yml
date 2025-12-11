@@ -81,7 +81,7 @@ jobs:
       - name: Configure kubeconfig
         run: |
           mkdir -p $HOME/.kube
-          kind get kubeconfig > $HOME/.kube/config
+          kind get kubeconfig --name github-actions > $HOME/.kube/config 
           chmod 600 $HOME/.kube/config
 
       - name: Deploy Helm chart
