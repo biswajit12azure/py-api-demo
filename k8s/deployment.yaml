@@ -15,6 +15,7 @@ spec:
     spec:
       containers:
         - name: my-python-app
-          image: localhost:5000/my-python-app:latest
+          image: my-python-app:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
