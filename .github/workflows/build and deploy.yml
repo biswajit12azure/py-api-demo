@@ -106,11 +106,10 @@ jobs:
       - name: Deploy Helm chart
         run: |
           helm upgrade --install my-python-app ./helm/my-python-app \
-               --namespace my-namespace \
+               --namespace my-namespace-v2 \
                --create-namespace \
                --set image.repository=my-python-app \
-               --set image.tag=latest \
-               --force
+               --set image.tag=latest
 
       - name: Check Pods and Deployment Status
         run: |
