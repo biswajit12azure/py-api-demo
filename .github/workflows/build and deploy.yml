@@ -2,25 +2,21 @@ name: 🛡️ Python Build and Deploy to Minikube
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 permissions:
   contents: read
-  
+
 jobs:
   build-and-deploy:
     name: Build Docker Image and Deploy to Minikube
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      # --- Build Docker image ---
-      - name: Build Docker image
-        run: |
-          docker build -t my-python-app:latest .
 
       # --- Install Minikube ---
       - name: Install Minikube
@@ -35,15 +31,21 @@ jobs:
           minikube start --driver=docker
           minikube status
 
-      # --- Set kubectl context ---
-      - name: Configure kubectl
+      # --- Use Minikube’s internal Docker engine ---
+      - name: Configure Docker for Minikube
         run: |
-          kubectl config use-context minikube
-          kubectl get nodes
+          eval $(minikube docker-env)
 
-      # --- Create namespace if not exists ---
+      # --- Build Docker image inside Minikube ---
+      - name: Build Docker image inside Minikube
+        run: |
+          eval $(minikube docker-env)
+          docker build -t my-python-app:latest .
+
+      # --- Ensure namespace exists ---
       - name: Create namespace
-        run: kubectl get ns my-namespace || kubectl create ns my-namespace
+        run: |
+          kubectl create namespace my-namespace --dry-run=client -o yaml | kubectl apply -f -
 
       # --- Deploy Kubernetes manifests ---
       - name: Deploy manifests
@@ -56,3 +58,4 @@ jobs:
         run: |
           kubectl get all -n my-namespace
           kubectl rollout status deployment/my-python-app -n my-namespace
+
