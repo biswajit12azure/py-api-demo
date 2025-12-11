@@ -39,19 +39,19 @@ jobs:
         with:
           python-version: "3.11"
 
-      # 3️ Install dependencies
+      # 4 Install dependencies
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # 4️ Run dependency vulnerability scan using pip-audit
+      # 5 Run dependency vulnerability scan using pip-audit
       - name: Run pip-audit (Dependency Scan)
         run: |
           pip install pip-audit
           pip-audit
 
-      # 5️ Run SAST scan using CodeQL
+      # 6 Run SAST scan using CodeQL
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
@@ -65,7 +65,7 @@ jobs:
         with:
           category: "/language:python"
           
-       # 6 Run Semgrep (optional, powerful rules engine)
+       # 7 Run Semgrep (optional, powerful rules engine)
       - name: Run Semgrep
         run: |
           pip install semgrep
@@ -76,10 +76,22 @@ jobs:
           name: semgrep-report
           path: semgrep-report.json
 
-      # 7 Run SonarCloud Scan
+      # 8 Run SonarCloud Scan
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
           projectBaseDir: .
+
+      # 9 SBOM - Software Bill of Materials (Syft)
+      - name: Generate SBOM (Syft)
+        uses: anchore/syft-action@v0.1.2
+        with:
+          output: sbom.spdx.json
+          format: spdx-json
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.spdx.json
