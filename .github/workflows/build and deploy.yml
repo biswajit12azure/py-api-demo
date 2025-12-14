@@ -71,6 +71,8 @@ jobs:
         run: |
           kubectl get all -n my-namespace
           kubectl rollout status deployment/my-python-app -n my-namespace
+          kubectl delete -f k8s/deployment.yaml -n my-namespace
+          kubectl delete -f k8s/service.yaml -n my-namespace
 
       # --- Verify deployment ---
       - name: Verify Kubernetes Deployment
