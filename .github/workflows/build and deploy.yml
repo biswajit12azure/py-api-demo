@@ -56,29 +56,29 @@ jobs:
           version: v3.12.0
           
       # --- Ensure namespace exists ---
-      - name: Create namespace
-        run: |
-          kubectl create namespace my-namespace --dry-run=client -o yaml | kubectl apply -f -
+    #  - name: Create namespace
+     #   run: |
+      #    kubectl create namespace my-namespace --dry-run=client -o yaml | kubectl apply -f -
 
       # --- Deploy Kubernetes manifests ---
-      - name: Deploy manifests
-        run: |
-          kubectl apply -f k8s/deployment.yaml -n my-namespace
-          kubectl apply -f k8s/service.yaml -n my-namespace
+     # - name: Deploy manifests
+    #    run: |
+     #     kubectl apply -f k8s/deployment.yaml -n my-namespace
+       #   kubectl apply -f k8s/service.yaml -n my-namespace
 
       # --- Verify deployment ---
-      - name: Verify deployment
-        run: |
-          kubectl get all -n my-namespace
-          kubectl rollout status deployment/my-python-app -n my-namespace
-          kubectl delete -f k8s/deployment.yaml -n my-namespace
-          kubectl delete -f k8s/service.yaml -n my-namespace
+     # - name: Verify deployment
+     #   run: |
+     #     kubectl get all -n my-namespace
+     #     kubectl rollout status deployment/my-python-app -n my-namespace
+     #     kubectl delete -f k8s/deployment.yaml -n my-namespace
+     #     kubectl delete -f k8s/service.yaml -n my-namespace
 
       # --- Verify deployment ---
-      - name: Verify Kubernetes Deployment
-        run: |
-         kubectl get pods -n my-namespace
-         kubectl logs deploy/my-python-app -n my-namespace
+    #  - name: Verify Kubernetes Deployment
+    #    run: |
+     #    kubectl get pods -n my-namespace
+     #    kubectl logs deploy/my-python-app -n my-namespace
 
       # Deploy Application using Helm
     # ---------------------------------------------------
