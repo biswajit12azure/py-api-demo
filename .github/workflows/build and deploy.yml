@@ -78,6 +78,21 @@ jobs:
          kubectl get pods -n my-namespace
          kubectl logs deploy/my-python-app -n my-namespace
 
+      # 7️⃣ Deploy Application using Helm
+    # ---------------------------------------------------
+      - name: Deploy application via Helm
+        run: |
+          helm upgrade --install my-python-app ./helm/my-python-app \
+          --namespace my-namespace \
+          --create-namespace \
+          --set image.repository=my-python-app \
+          --set image.tag=latest
+
+      - name: Verify Helm Deployment
+        run: |
+          kubectl get all -n my-namespace
+          kubectl rollout status deployment/my-python-app -n my-namespace
+
       # --- Port Forward ---
       - name: Port Forward service
         run: |
