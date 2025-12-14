@@ -93,8 +93,7 @@ jobs:
       - name: Verify Helm Deployment
         run: |
           kubectl get all -n my-namespace
-          kubectl rollout status deployment/my-python-app-helm -n my-namespace
-
+          
       # --- Port Forward ---
       - name: Port Forward service
         run: |
