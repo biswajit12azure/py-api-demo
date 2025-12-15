@@ -88,7 +88,14 @@ jobs:
           --namespace my-namespace \
           --create-namespace \
           --set image.repository=my-python-app \
-          --set image.tag=latest
+          --set image.tag=latest \
+          --set image.pullPolicy=IfNotPresent
+
+      - name: Wait for application rollout
+        run: |
+           kubectl rollout status deployment/my-python-app \
+            -n my-namespace \
+            --timeout=180s
 
       - name: Verify Helm Deployment
         run: |
