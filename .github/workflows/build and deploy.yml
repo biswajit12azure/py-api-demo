@@ -43,30 +43,64 @@ jobs:
         run: |
           eval $(minikube docker-env)
           docker build -t my-python-app:latest .
+       
+       #  Install kubectl & Helm
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: v1.29.0
 
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: v3.12.0
+          
       # --- Ensure namespace exists ---
-      - name: Create namespace
-        run: |
-          kubectl create namespace my-namespace --dry-run=client -o yaml | kubectl apply -f -
+    #  - name: Create namespace
+     #   run: |
+      #    kubectl create namespace my-namespace --dry-run=client -o yaml | kubectl apply -f -
 
       # --- Deploy Kubernetes manifests ---
-      - name: Deploy manifests
-        run: |
-          kubectl apply -f k8s/deployment.yaml -n my-namespace
-          kubectl apply -f k8s/service.yaml -n my-namespace
+     # - name: Deploy manifests
+    #    run: |
+     #     kubectl apply -f k8s/deployment.yaml -n my-namespace
+       #   kubectl apply -f k8s/service.yaml -n my-namespace
 
       # --- Verify deployment ---
-      - name: Verify deployment
+     # - name: Verify deployment
+     #   run: |
+     #     kubectl get all -n my-namespace
+     #     kubectl rollout status deployment/my-python-app -n my-namespace
+     #     kubectl delete -f k8s/deployment.yaml -n my-namespace
+     #     kubectl delete -f k8s/service.yaml -n my-namespace
+
+      # --- Verify deployment ---
+    #  - name: Verify Kubernetes Deployment
+    #    run: |
+     #    kubectl get pods -n my-namespace
+     #    kubectl logs deploy/my-python-app -n my-namespace
+
+      # Deploy Application using Helm
+    # ---------------------------------------------------
+      - name: Deploy application via Helm
+        run: |
+          helm upgrade --install my-python-app-helm ./helm/my-python-app \
+          --namespace my-namespace \
+          --create-namespace \
+          --set image.repository=my-python-app \
+          --set image.tag=latest \
+          --set image.pullPolicy=IfNotPresent
+
+      - name: Wait for application rollout
+        run: |
+           kubectl rollout status deployment/my-python-app \
+            -n my-namespace \
+            --timeout=180s
+
+      - name: Verify Helm Deployment
         run: |
           kubectl get all -n my-namespace
-          kubectl rollout status deployment/my-python-app -n my-namespace
-
-      # --- Verify deployment ---
-      - name: Verify Kubernetes Deployment
-        run: |
-         kubectl get pods -n my-namespace
-         kubectl logs deploy/my-python-app -n my-namespace
-
+          
       # --- Port Forward ---
       - name: Port Forward service
         run: |
